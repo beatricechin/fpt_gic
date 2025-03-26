@@ -1,77 +1,69 @@
-import unittest
-from unittest.mock import patch
-from io import StringIO
-from simulation import add_car, add_commands, run_simulation, reset_simulation
+import pytest
+from simulation import Car, Field, SimulationEngine, Simulation
 
-class TestCarSimulation(unittest.TestCase):
+@pytest.fixture
+def sample_field():
+    return Field(width=10, height=10)
+
+def test_add_car_to_field(sample_field):
+    car = Car("CarA", 1, 2, 'N', "FFRFFFFRRL")
+    sample_field.add_car(car)
+    assert "CarA" in sample_field.cars
+    assert sample_field.cars["CarA"].x == 1
+    assert sample_field.cars["CarA"].y == 2
+    assert sample_field.cars["CarA"].direction == 'N'
+
+def test_car_movement_no_collision(sample_field):
+    car = Car("CarA", 1, 2, 'N', "FFRFF")
+    sample_field.add_car(car)
+    engine = SimulationEngine(sample_field)
+    engine.process_commands()
+
+    assert car.x == 3
+    assert car.y == 4
+    assert car.direction == 'E'
+    assert not engine.collisions
+
+def test_car_boundary_stop(sample_field):
+    car = Car("CarA", 0, 0, 'S', "F") 
+    sample_field.add_car(car)
+    engine = SimulationEngine(sample_field)
+    engine.process_commands()
+
+    assert car.x == 0
+    assert car.y == 0
+    assert car.stopped
+
+def test_collision_detection(sample_field):
+    car_a = Car("CarA", 1, 2, 'N', "FFRFFFFRRL")
+    car_b = Car("CarB", 7, 8, 'W', "FFLFFFFFFF")
+    sample_field.add_car(car_a)
+    sample_field.add_car(car_b)
+    engine = SimulationEngine(sample_field)
+    collisions = engine.process_commands()
+
+    assert any(col for col in collisions if col[0] == 'CarA' and col[1] == 'CarB' and col[2:] == (5, 4, 7)) 
+    assert car_a.stopped
+    assert car_b.stopped
+
+def test_simulation_display_result(capsys):
+    sim = Simulation()
+    sim.initialize_field(10, 10)
+    car = Car("CarA", 1, 2, 'N', "FFRFFFFRRL")
+    sim.add_car(car)
+    sim.run_simulation()
+
+    captured = capsys.readouterr()
+    assert "CarA, (5,4) S" in captured.out
+
+
+def test_add_car_duplicate_name_handled(sample_field):
+    car_a = Car("CarA", 1, 2, 'N', "FFRFFFFRRL")
+    car_duplicate = Car("CarA", 3, 3, 'E', "FFLFF")
+
+    sample_field.add_car(car_a)
     
-    @patch('builtins.input', side_effect=[
-        'CarA',            # car name
-        '1 2 N'            # position input
-    ])
-    def test_add_car_success(self, mock_input):
-        dic = {}
-        name, x, y, direction = add_car(dic)
-        self.assertEqual(name, 'CarA')
-        self.assertEqual(x, '1')
-        self.assertEqual(y, '2')
-        self.assertEqual(direction, 'N')
-    
-    @patch('builtins.input', side_effect=[
-        'CarA',            # Duplicate car name
-        'CarB',            # New car name
-        '3 3 E'            # position input
-    ])
-    def test_add_car_duplicate_name_handled(self, mock_input):
-        dic = {'CarA': ['1', '2', 'N', 'F']}
-        name, x, y, direction = add_car(dic)
-        self.assertEqual(name, 'CarB')
-        self.assertEqual(x, '3')
-        self.assertEqual(y, '3')
-        self.assertEqual(direction, 'E')
+    with pytest.raises(ValueError, match="Car with name 'CarA' already exists"):
+        sample_field.add_car(car_duplicate)
 
-    @patch('builtins.input', side_effect=['CarA', '1 2 N','FFRFFFFRRL'])
-    def test_add_commands_success(self, mock_input):
-        dic = {}
-        add_commands(dic)
-        self.assertIn('CarA', dic)
-        self.assertEqual(dic['CarA'], ['1', '2', 'N', 'FFRFFFFRRL'])
-
-    def test_reset_simulation_clears_dict(self):
-        dic = {'CarA': ['1', '2', 'N', 'FFRFFFFRRL']}
-        width, height = reset_simulation(dic)
-        self.assertEqual(dic, {})
-        self.assertEqual((width, height), (0, 0))   
-
-    def test_run_simulation_no_collision(self):
-        dic = {'CarA': ['1', '2', 'N', 'FFRFFFFRRL']}
-        width, height = 10, 10
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            run_simulation(dic, width, height)
-            output = mock_stdout.getvalue()
-            self.assertIn("- CarA, (5,4) S", output)
-
-    def test_run_simulation_boundary_respect(self):
-        dic = {'CarA': ['0', '0', 'S', 'F']}  
-        width, height = 10, 10
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            run_simulation(dic, width, height)
-            output = mock_stdout.getvalue()
-            self.assertIn("- CarA, (0,0) S", output) 
-
-    def test_run_simulation_with_collision(self):
-        dic = {
-            'CarA': ['1', '2', 'N', 'FFRFFFFRRL'], 
-            'CarB': ['7', '8', 'W', 'FFLFFFFFFF']  
-        }
-        width, height = 10, 10
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            run_simulation(dic, width, height)
-            output = mock_stdout.getvalue()
-
-            # Check that both cars registered a collision at (5,4)
-            self.assertIn("CarA, collides with CarB at (5,4) at step 7", output)
-            self.assertIn("CarB, collides with CarA at (5,4) at step 7", output)            
-
-if __name__ == '__main__':
-    unittest.main()
+  

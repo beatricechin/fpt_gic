@@ -36,6 +36,8 @@ class Field:
         self.cars = {} 
 
     def add_car(self, car):
+        if car.name in self.cars:
+            raise ValueError(f"Car with name '{car.name}' already exists")
         self.cars[car.name] = car
 
 class SimulationEngine:
@@ -90,7 +92,6 @@ class SimulationEngine:
             if other_car == car:
                 continue
             if (new_x, new_y) == (other_car.x, other_car.y):
-                print(f"Collision detected: {car.name} collides with {other_car.name} at ({new_x},{new_y})")
                 self.collisions.append((car.name, other_car.name, new_x, new_y, step+1))
                 self.collisions.append((other_car.name, car.name, new_x, new_y, step+1))
                 car.stopped = True
@@ -101,12 +102,12 @@ class SimulationEngine:
         car.update_position(new_x, new_y)
 
     def turn_car_right(self, car):
-        """Turn the car 90 degrees to the right."""
+        """Turn the car to the right."""
         current_index = DIRECTIONS.index(car.direction)
         car.direction = DIRECTIONS[(current_index + 1) % 4]
 
     def turn_car_left(self, car):
-        """Turn the car 90 degrees to the left."""
+        """Turn the car to the left."""
         current_index = DIRECTIONS.index(car.direction)
         car.direction = DIRECTIONS[(current_index - 1) % 4]
 
@@ -167,6 +168,9 @@ class SimulationCLI:
             if not name:
                 print("Car name cannot be empty.")
                 continue
+            if name in self.simulation.field.cars:
+                    print(f"A car named '{name}' already exists. Please choose a different name.")
+                    continue            
 
             position = input(f"Please enter initial position of car {name} in 'x y Direction' format (e.g., '1 2 N'): ").strip().split()
             if len(position) != 3:

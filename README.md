@@ -4,4 +4,4 @@ run `python3 simulation.py`
 
 # For testing purpose
 
-run `python3 -m unittest test_simulation.py` 
+run `pytest test_simulation.py -v` 
