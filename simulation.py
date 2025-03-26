@@ -139,11 +139,12 @@ class Simulation:
             print("\nAfter simulation, the result is:")
             for car in self.field.cars.values():
                 print(f"- {car.name}, ({car.x},{car.y}) {car.direction}")
-
-        print("\nAfter simulation, the result is:")
-        for collision in self.simulation_engine.collisions:
-            car_name, other_car_name, x, y, step = collision
-            print(f"- {car_name}, collides with {other_car_name} at ({x},{y}) at step {step}")
+        
+        else:
+            print("\nAfter simulation, the result is:")
+            for collision in self.simulation_engine.collisions:
+                car_name, other_car_name, x, y, step = collision
+                print(f"- {car_name}, collides with {other_car_name} at ({x},{y}) at step {step}")
 
 
 class SimulationCLI:
