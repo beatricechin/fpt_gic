@@ -14,14 +14,14 @@ def test_add_car_to_field(sample_field):
     assert sample_field.cars["CarA"].direction == 'N'
 
 def test_car_movement_no_collision(sample_field):
-    car = Car("CarA", 1, 2, 'N', "FFRFF")
+    car = Car("CarA", 1, 2, 'N', "FFRFFFFRRL")
     sample_field.add_car(car)
     engine = SimulationEngine(sample_field)
     engine.process_commands()
 
-    assert car.x == 3
+    assert car.x == 5
     assert car.y == 4
-    assert car.direction == 'E'
+    assert car.direction == 'S'
     assert not engine.collisions
 
 def test_car_boundary_stop(sample_field):
